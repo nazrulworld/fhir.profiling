@@ -60,6 +60,9 @@ class FunctionInvocationEvaluator(EvaluatorBase):
     def count(self):
         """ """
 
+    def exists(self):
+        """ """
+
 
 class MemberInvocationEvaluator(EvaluatorBase):
     __antlr4_node_type__ = "MemberInvocation"

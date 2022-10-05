@@ -16,7 +16,7 @@ Profiling FHIR®
         :target: https://ci.appveyor.com/project/nazrulworld/fhir-profiling
         :alt: Windows Build
 
-.. image:: https://codecov.io/gh/nazrulworld/fhir.profiling/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/nazrulworld/fhir.profiling/branch/main/graph/badge.svg?token=IQMTGF8II2
         :target: https://codecov.io/gh/nazrulworld/fhir.profiling
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg

@@ -139,6 +139,35 @@ def test_parse_function_with_join():
     assert nodes_right_nodes.left.get_nodes().left == "system"
     assert nodes_right_nodes.right == "https://../v3-MaritalStatus"
 
-    func_node = compile_fhirpath_expression(
-        "code.coding.where(code = 'P' and system = 'https://../v3-MaritalStatus').exits()"
-    ).children[1]
+
+def test_construct_evaluator_from_invocation_expression():
+    """ """
+    invocation_expression_node = compile_fhirpath_expression(
+        "code.coding.where(code = 'P' and system = 'https://../v3-MaritalStatus').exists()"
+    )
+    invocation_expression_evaluator = invocation_expression_node.construct_evaluator()
+    assert (
+        invocation_expression_evaluator.get_expression()
+        == "code.coding.where(code='P'andsystem='https://../v3-MaritalStatus').exists()"
+    )
+    main_nodes = invocation_expression_evaluator.get_nodes()
+    assert isinstance(main_nodes.right, api.FunctionInvocationEvaluator)
+    assert main_nodes.right.get_expression() == "exists()"
+    assert isinstance(main_nodes.left, api.InvocationExpressionEvaluator)
+
+    assert (
+        main_nodes.left.get_expression()
+        == "code.coding.where(code='P'andsystem='https://../v3-MaritalStatus')"
+    )
+    nodes_1 = main_nodes.left.get_nodes()
+    assert nodes_1.right.get_type() == "FunctionInvocation"
+    assert (
+        nodes_1.right.get_expression()
+        == "where(code='P'andsystem='https://../v3-MaritalStatus')"
+    )
+    assert nodes_1.left.get_type() == "InvocationExpression"
+    nodes_1_1 = nodes_1.left.get_nodes()
+    assert isinstance(nodes_1_1.left, api.MemberInvocationEvaluator)
+    assert isinstance(nodes_1_1.right, api.MemberInvocationEvaluator)
+    assert nodes_1_1.left.get_nodes().left == "code"
+    assert nodes_1_1.right.get_nodes().left == "coding"
