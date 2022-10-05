@@ -1,0 +1,41 @@
+# Config file for automatic testing at travis-ci.org
+os: linux
+dist: xenial
+language: python
+jobs:
+  include:
+    - name: Python 3.6
+      python: 3.6
+      env: python_version=3.6
+
+    - name: Python 3.7
+      python: 3.7
+      env: python_version=3.7
+
+    - name: Python 3.8
+      python: 3.8
+      env: python_version=3.8
+
+    - name: Python 3.9
+      python: 3.9-dev
+      env: python_version=3.9-dev
+
+  allow_failures:
+    - python: 3.9-dev
+
+cache:
+  directories:
+    - eggs
+install:
+  - pip install -U pip
+  - pip install -e .[test]
+  - pip install codecov
+  - sleep 1
+script:
+  - make clean
+#  - make lint
+#  - mypy fhir/profiling/
+  - black --check --verbose fhir/profiling/
+  - pytest -s --cov=tests -s --tb=native -v --cov-report term-missing --cov-append tests
+after_success:
+  - codecov
