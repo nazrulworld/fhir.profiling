@@ -123,7 +123,21 @@ def test_parse_function_with_join():
     assert func_name == "where"
     assert len(param_list) == 1
     assert isinstance(param_list[0], api.AndExpressionEvaluator)
-    # @todo test more
+    and_expression: api.AndExpressionEvaluator = param_list[0]
+    nodes = and_expression.get_nodes()
+    assert isinstance(nodes.left, api.EqualityExpressionEvaluator)
+    assert isinstance(nodes.right, api.EqualityExpressionEvaluator)
+    assert nodes.left.get_expression() == "code='P'"
+    assert nodes.right.get_expression() == "system='https://../v3-MaritalStatus'"
+    nodes_left_nodes = nodes.left.get_nodes()
+    nodes_right_nodes = nodes.right.get_nodes()
+    isinstance(nodes_left_nodes.left, api.MemberInvocationEvaluator)
+    assert nodes_left_nodes.left.get_nodes().left == "code"
+    assert nodes_left_nodes.right == "P"
+
+    isinstance(nodes_right_nodes.left, api.MemberInvocationEvaluator)
+    assert nodes_right_nodes.left.get_nodes().left == "system"
+    assert nodes_right_nodes.right == "https://../v3-MaritalStatus"
 
     func_node = compile_fhirpath_expression(
         "code.coding.where(code = 'P' and system = 'https://../v3-MaritalStatus').exits()"

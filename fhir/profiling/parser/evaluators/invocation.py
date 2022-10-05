@@ -1,7 +1,7 @@
 # _*_ coding: utf-8 _*_
-from typing import Any, Optional, List, Union
+from typing import Any, List, Optional, Union
 
-from .base import Evaluation, EvaluatorBase, ValuedEvaluation, EMPTY
+from .base import EMPTY, Evaluation, EvaluatorBase, ValuedEvaluation
 
 __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
 
@@ -74,9 +74,7 @@ class MemberInvocationEvaluator(EvaluatorBase):
             raise ValueError("identifier is already assigned.")
         self.__storage__.append(node)
 
-    def evaluate(
-        self, resource: Any
-    ) -> Union[Evaluation, ValuedEvaluation]:
+    def evaluate(self, resource: Any) -> Union[Evaluation, ValuedEvaluation]:
         """ """
         nodes = self.get_nodes()
         try:

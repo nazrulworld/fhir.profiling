@@ -11,7 +11,7 @@ def test_compile_fhirpath_expression():
     rstm = compile_fhirpath_expression(
         "(name.family.item[0] != 'KMP') xor extension.where(url='http://hl7.org/fhir/StructureDefinition/data-absent-reason').exists()"
     )
-    rstm = compile_fhirpath_expression("coding.where(code = 'P' and system = 'https://../v3-MaritalStatus')")
+    rstm = compile_fhirpath_expression("(name.code = 'P' and name.system = 'https://../v3-MaritalStatus') or name.exits()")
     with open("term.json", "w") as fp:
         fp.write(rstm.json(indent=2))
     # hl7.org/fhir/us/core/StructureDefinition-us-core-patient.html

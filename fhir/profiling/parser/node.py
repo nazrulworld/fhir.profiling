@@ -19,92 +19,24 @@ class ExpressionNode(BaseModel):
     children: Optional[List["ExpressionNode"]] = Field(None, title="Children node")
 
     def construct_evaluator(self, evaluator: Optional[api.EvaluatorBase] = None):
-        """{"node_type": "TermExpression",
-                "text": "gender", "terminal_node_text": [],
-                "children": [
-                {"node_type": "InvocationTerm", "text": "gender", "terminal_node_text": [],
-                "children": [{"node_type": "MemberInvocation", "text": "gender", "terminal_node_text": [],
-                 "children": [{"node_type": "Identifier", "text": "gender", "terminal_node_text": ["gender"], "children": null}]}]}]}
-                 {
-          "node_type": "InvocationExpression",
-          "text": "gender.exist()",
-          "terminal_node_text": [
-            "."
-          ],
-          "children": [
-            {
-              "node_type": "TermExpression",
-              "text": "gender",
-              "terminal_node_text": [
-
-              ],
-              "children": [
-                {
-                  "node_type": "InvocationTerm",
-                  "text": "gender",
-                  "terminal_node_text": [
-
-                  ],
-                  "children": [
-                    {
-                      "node_type": "MemberInvocation",
-                      "text": "gender",
-                      "terminal_node_text": [
-
-                      ],
-                      "children": [
-                        {
-                          "node_type": "Identifier",
-                          "text": "gender",
-                          "terminal_node_text": [
-                            "gender"
-                          ],
-                          "children": null
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "node_type": "FunctionInvocation",
-              "text": "exist()",
-              "terminal_node_text": [
-
-              ],
-              "children": [
-                {
-                  "node_type": "Function",
-                  "text": "exist()",
-                  "terminal_node_text": [
-                    "(",
-                    ")"
-                  ],
-                  "children": [
-                    {
-                      "node_type": "Identifier",
-                      "text": "exist",
-                      "terminal_node_text": [
-                        "exist"
-                      ],
-                      "children": null
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }"""
+        """ """
         if self.node_type in ("TermExpression", "InvocationTerm"):
             # nothing to do just pass to children
             assert len(self.children) == 1
             return self.children[0].construct_evaluator(evaluator)
         # Logic-1
         if self.node_type == "MemberInvocation":
-            assert len(self.children) == 0
+            assert len(self.children) == 1
+            assert self.children[0].node_type == "Identifier"
             me = api.MemberInvocationEvaluator(expression=self.text)
             me.init(self.children[0].terminal_node_text[0])
+            return ExpressionNode.finalize(me, evaluator)
+        # Logic-2
+        if self.node_type == "ParenthesizedTerm":
+            assert len(self.children) == 1
+            me = api.ParenthesizedTermEvaluator(expression=self.text)
+            successor = self.children[0].construct_evaluator(me)
+            me.add_node(successor)
             return ExpressionNode.finalize(me, evaluator)
 
         if self.node_type == "InvocationExpression":
@@ -128,6 +60,16 @@ class ExpressionNode(BaseModel):
             )
             left_node = self.children[0].construct_evaluator(me)
             right_node = self.children[1].construct_evaluator(me)
+            me.init(left_node, right_node)
+            return ExpressionNode.finalize(me, evaluator)
+
+        if self.node_type in ("EqualityExpression", "InequalityExpression"):
+            me = getattr(api, self.node_type + "Evaluator")(
+                self.terminal_node_text[0], expression=self.text
+            )
+            assert self.children[0].node_type == "TermExpression"
+            left_node = ExpressionNode.parse_term_expression(self.children[0])
+            right_node = ExpressionNode.parse_term_expression(self.children[1])
             me.init(left_node, right_node)
             return ExpressionNode.finalize(me, evaluator)
 

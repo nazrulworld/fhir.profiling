@@ -1,10 +1,10 @@
 # _*_ coding: utf-8 _*_
-from collections import deque, namedtuple
-
 import abc
+from collections import deque, namedtuple
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Deque, Optional, Union, cast
+
 from pydantic.error_wrappers import ValidationError
-from typing import TYPE_CHECKING, Any, Optional, Union, Deque, cast
 
 __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
 
@@ -261,9 +261,16 @@ class ParenthesizedTermEvaluator(EvaluatorBase):
 
     def add_node(self, node: EvaluatorBase):
         """ """
-        if len(self.__storage__) > 1:
+        if len(self.__storage__) > 0:
             raise ValueError("Successor evaluator is already assigned.")
         self.__storage__.append(node)
 
 
-__all__ = ["EvaluatorBase", "QuantityUnit", "EMPTY", "NULL", "LeftRightTuple"]
+__all__ = [
+    "EvaluatorBase",
+    "QuantityUnit",
+    "EMPTY",
+    "NULL",
+    "LeftRightTuple",
+    "ParenthesizedTermEvaluator",
+]

@@ -1,12 +1,19 @@
 # _*_ coding: utf-8 _*_
-from .base import EMPTY, NULL, EvaluatorBase, QuantityUnit
+from .base import EMPTY, NULL, EvaluatorBase, ParenthesizedTermEvaluator, QuantityUnit
 from .expression import *
 from .invocation import *
 
 __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
 
 __all__ = (
-    ["EvaluatorBase", "QuantityUnit", "EMPTY", "NULL", "LeftRightTuple"]  # from base.py
+    [
+        "EvaluatorBase",
+        "QuantityUnit",
+        "EMPTY",
+        "NULL",
+        "LeftRightTuple",
+        "ParenthesizedTermEvaluator",
+    ]  # from base.py
     + [  # from expression.py
         "MembershipExpressionEvaluator",
         "InequalityExpressionEvaluator",
