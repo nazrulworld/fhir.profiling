@@ -1,7 +1,6 @@
 # _*_ coding: utf-8 _*_
 from typing import Any, Optional, List, Union
 
-from fhir.resources.core.fhirabstractmodel import FHIRAbstractModel
 from .base import Evaluation, EvaluatorBase, ValuedEvaluation, EMPTY
 
 __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
@@ -15,7 +14,7 @@ class InvocationExpressionEvaluator(EvaluatorBase):
         self.add_node(node_left)
         self.add_node(node_right)
 
-    def evaluate(self, resource: "FHIRAbstractModel") -> Evaluation:
+    def evaluate(self, resource: Any) -> Evaluation:
         """ """
         nodes = self.get_nodes()
         value_evaluation = nodes.left.evaluate(resource)
@@ -51,7 +50,7 @@ class FunctionInvocationEvaluator(EvaluatorBase):
             raise ValueError
         self.param_list = param_list
 
-    def evaluate(self, resource: "FHIRAbstractModel") -> Evaluation:
+    def evaluate(self, resource: Any) -> Evaluation:
         """ """
         return getattr(self, self.func_name)(resource, param_list=self.param_list)
 
@@ -76,7 +75,7 @@ class MemberInvocationEvaluator(EvaluatorBase):
         self.__storage__.append(node)
 
     def evaluate(
-        self, resource: "FHIRAbstractModel"
+        self, resource: Any
     ) -> Union[Evaluation, ValuedEvaluation]:
         """ """
         nodes = self.get_nodes()

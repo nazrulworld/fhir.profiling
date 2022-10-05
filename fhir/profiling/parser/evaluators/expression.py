@@ -1,8 +1,6 @@
 # _*_ coding: utf-8 _*_
 from typing import Any, Optional, Union
 
-from fhir.resources.core.fhirabstractmodel import FHIRAbstractModel
-
 from .base import (
     EMPTY,
     Evaluation,
@@ -27,7 +25,7 @@ class IndexerExpressionEvaluator(EvaluatorBase):
         self.add_node(member_invocation)
         self.add_node(index)
 
-    def evaluate(self, resource: "FHIRAbstractModel") -> Evaluation:
+    def evaluate(self, resource: Any) -> Evaluation:
         """ """
         nodes = self.get_nodes()
         member_invocation = nodes.left

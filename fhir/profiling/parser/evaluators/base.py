@@ -1,12 +1,10 @@
 # _*_ coding: utf-8 _*_
-import abc
 from collections import deque, namedtuple
+
+import abc
 from dataclasses import dataclass, field
 from pydantic.error_wrappers import ValidationError
-from typing import TYPE_CHECKING, Any, Optional, Union, NamedTuple, List, Deque, cast
-
-if TYPE_CHECKING:
-    from fhir.resources.core.fhirabstractmodel import FHIRAbstractModel
+from typing import TYPE_CHECKING, Any, Optional, Union, Deque, cast
 
 __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
 
@@ -30,7 +28,7 @@ class QuantityUnit:
     value: Union[int, float] = field(init=True)
 
 
-def extract_value(node: Any, resource: "FHIRAbstractModel" = EMPTY) -> Any:
+def extract_value(node: Any, resource: Any = EMPTY) -> Any:
     """ """
     if node is EMPTY:
         # no evaluator
@@ -112,7 +110,7 @@ class ValuedEvaluation(Evaluation):
 
     def __init__(
         self,
-        value: Union["FHIRAbstractModel", Empty, None],
+        value: Any,
         error: Optional[ValidationError] = None,
     ):
         """ """
@@ -163,7 +161,7 @@ class EvaluatorBase:
         self.__predecessor__: Optional["EvaluatorBase"] = None
         self.__storage__: Deque[Any] = deque(maxlen=2)
 
-    def evaluate(self, resource: "FHIRAbstractModel") -> Evaluation:
+    def evaluate(self, resource: Any) -> Evaluation:
         """ """
         raise NotImplementedError
 
@@ -232,7 +230,7 @@ class LogicalOperator(EvaluatorBase):
             raise ValueError
         return
 
-    def evaluate(self, resource: "FHIRAbstractModel" = EMPTY) -> Evaluation:
+    def evaluate(self, resource: Any = EMPTY) -> Evaluation:
         """ """
         nodes = self.get_nodes()
         value_left = extract_value(nodes.left, resource)
@@ -253,7 +251,7 @@ class ParenthesizedTermEvaluator(EvaluatorBase):
 
     __antlr4_node_type__ = "ParenthesizedTerm"
 
-    def evaluate(self, resource: "FHIRAbstractModel") -> Evaluation:
+    def evaluate(self, resource: Any) -> Evaluation:
         """ """
         if len(self.__storage__) == 0:
             raise ValueError("No successor evaluator is assigned.")
