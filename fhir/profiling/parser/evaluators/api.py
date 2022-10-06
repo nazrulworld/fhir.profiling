@@ -1,5 +1,12 @@
 # _*_ coding: utf-8 _*_
-from .base import EMPTY, NULL, EvaluatorBase, ParenthesizedTermEvaluator, QuantityUnit
+from .base import (
+    EMPTY,
+    NULL,
+    EvaluationError,
+    EvaluatorBase,
+    ParenthesizedTermEvaluator,
+    QuantityUnit,
+)
 from .expression import *
 from .invocation import *
 
@@ -8,6 +15,7 @@ __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
 __all__ = (
     [
         "EvaluatorBase",
+        "EvaluationError",
         "QuantityUnit",
         "EMPTY",
         "NULL",

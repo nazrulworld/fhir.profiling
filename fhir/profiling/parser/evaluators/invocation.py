@@ -18,10 +18,17 @@ class InvocationExpressionEvaluator(EvaluatorBase):
         """ """
         nodes = self.get_nodes()
         value_evaluation = nodes.left.evaluate(resource)
+        if value_evaluation.has_error():
+            return value_evaluation.with_new_expression_in_error(self.get_expression())
+
         value = value_evaluation.get_verdict(True)
+
         if nodes.right is EMPTY:
             return value
-        return nodes.right.evaluate(value)
+        value_evaluation = nodes.right.evaluate(value)
+        if value_evaluation.has_error():
+            return value_evaluation.with_new_expression_in_error(self.get_expression())
+        return value_evaluation
 
 
 class FunctionInvocationEvaluator(EvaluatorBase):
@@ -83,9 +90,11 @@ class MemberInvocationEvaluator(EvaluatorBase):
         try:
             value: Any = getattr(resource, nodes.left)
             return ValuedEvaluation(value)
-        except AttributeError:
-            # @todo: handle error properly
-            raise
+        except AttributeError as exc:
+            err_message = (
+                f"'{type(resource).__name__}' object has no attribute '{nodes.left}'."
+            )
+            return Evaluation.with_error(err_message, self.get_expression(), exc)
 
 
 __all__ = [

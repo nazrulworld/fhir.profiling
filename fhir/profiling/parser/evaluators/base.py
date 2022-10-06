@@ -4,8 +4,6 @@ from collections import deque, namedtuple
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Deque, Optional, Union, cast
 
-from pydantic.error_wrappers import ValidationError
-
 __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
 
 
@@ -26,6 +24,47 @@ LeftRightTuple = namedtuple("LeftRightTuple", ["left", "right"], rename=False)
 class QuantityUnit:
     unit: str = field(init=True)
     value: Union[int, float] = field(init=True)
+
+
+class ReadonlyClass:
+    __slots__ = ()
+
+    def __setattr__(self, key, value):
+        """ """
+        raise TypeError("Readonly object!")
+
+
+class ValidationError(Exception):
+    """ """
+
+    __slots__ = ("message", "exc")
+
+    def __init__(self, message: str, exc: Exception = None):
+        """ """
+        self.exc = exc
+        self.message = message
+        Exception.__init__(self, message)
+
+
+class EvaluationError(Exception, ReadonlyClass):
+    """@todo: contact errors"""
+
+    __slots__ = ("error", "expression")
+
+    def __init__(self, error: ValidationError, expression: str):
+        """ """
+        object.__setattr__(self, "error", error)
+        object.__setattr__(self, "expression", expression)
+
+    def rebuild(self, expression: str) -> "EvaluationError":
+        """ """
+        return self.__class__(self.error, expression)
+
+    @classmethod
+    def build(cls, message: str, expression: str, exc: Exception = None):
+        """ """
+        error = ValidationError(message, exc)
+        return cls(error, expression)
 
 
 def extract_value(node: Any, resource: Any = EMPTY) -> Any:
@@ -61,20 +100,12 @@ def validate_both_nodes_boolean(
         raise ValueError
 
 
-class ReadonlyClass:
-    __slots__ = ()
-
-    def __setattr__(self, key, value):
-        """ """
-        raise TypeError("Readonly object!")
-
-
 class Evaluation(abc.ABC, ReadonlyClass):
     """ """
 
     __slots__ = ("error", "success")
 
-    def __init__(self, error: "EvaluationError" = None):
+    def __init__(self, error: Union["EvaluationError", Empty] = None):
         """Terms for variable error.
         case-1 error value is None:  evaluation's result True
         case-2 error value is EMPTY: evaluation's result False
@@ -91,6 +122,30 @@ class Evaluation(abc.ABC, ReadonlyClass):
     def has_error(self):
         """ """
         return self.error not in (None, EMPTY)
+
+    def with_new_expression_in_error(self, expression: str):
+        """ """
+        if self.has_error():
+            return self.__class__(error=self.error.rebuild(expression=expression))
+        raise TypeError("Cannot set error!")
+
+    @classmethod
+    def with_error(
+        cls, message: str, expression: str, exc: Exception = None
+    ) -> "Evaluation":
+        """ """
+        error = EvaluationError.build(message=message, expression=expression, exc=exc)
+        return cls(error=error)
+
+    @classmethod
+    def with_true(cls) -> "Evaluation":
+        """ """
+        return cls(error=None)
+
+    @classmethod
+    def with_false(cls) -> "Evaluation":
+        """ """
+        return cls(error=EMPTY)
 
     def get_verdict(self, raise_on_error: bool = False):
         """ """
@@ -111,7 +166,7 @@ class ValuedEvaluation(Evaluation):
     def __init__(
         self,
         value: Any,
-        error: Optional[ValidationError] = None,
+        error: Optional["ValidationError"] = None,
     ):
         """ """
         Evaluation.__init__(self, error)
@@ -137,16 +192,10 @@ class ValuedEvaluation(Evaluation):
             return True
         return Evaluation.__bool__(self)
 
-
-class EvaluationError(abc.ABC, ReadonlyClass):
-    """@todo: contact errors"""
-
-    __slots__ = ("error", "expression")
-
-    def __init__(self, error: ValidationError, expression: str):
+    @classmethod
+    def with_value(cls, value: Any) -> "ValuedEvaluation":
         """ """
-        object.__setattr__(self, "error", error)
-        object.__setattr__(self, "expression", expression)
+        return cls(value=value, error=None)
 
 
 class EvaluatorBase:
@@ -268,6 +317,7 @@ class ParenthesizedTermEvaluator(EvaluatorBase):
 
 __all__ = [
     "EvaluatorBase",
+    "EvaluationError",
     "QuantityUnit",
     "EMPTY",
     "NULL",
