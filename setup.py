@@ -79,7 +79,7 @@ setup(
         "dev": (test_requirements + development_requirements + setup_requirements),
     },
     url="https://github.com/nazrulworld/fhir.profiling",
-    version="0.1.0.dev0",
+    version="0.0.1.dev0",
     zip_safe=False,
     python_requires=">=3.6",
     project_urls={

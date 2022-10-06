@@ -1,11 +1,6 @@
 graft fhir
-prune fhir/resources/tests
-prune fhir/resources/STU3/tests
-prune fhir/resources/DSTU2/tests
-prune script
 prune tests
 prune .github
-prune fhir-parser
 include AUTHORS.rst
 include CONTRIBUTING.rst
 include HISTORY.rst
@@ -15,8 +10,7 @@ include README.rst
 exclude tox.ini
 exclude Makefile
 exclude .editorconfig
-exclude .gitmodules
-exclude pyproject.toml .flake8 .isort.cfg appveyor.yml
+exclude pyproject.toml .flake8 .isort.cfg appveyor.yml .travis.yml
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]

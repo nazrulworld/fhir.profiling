@@ -1,6 +1,6 @@
-===============
-Profiling FHIR®
-===============
+=======================
+FHIR® profile validator
+=======================
 
 .. image:: https://img.shields.io/pypi/v/fhir.profiling.svg
         :target: https://pypi.python.org/pypi/fhir.profiling
@@ -31,6 +31,11 @@ Profiling FHIR®
         :alt: HL7® FHIR®
 
 
+Don't use this release! This release has been uploaded purly package registration purpose.
+------------------------------------------------------------------------------------------
+**But working release is coming soon, we are working hard to make it happen. If you have any question, suggestion, you are welcome to contact at email2nazrul@gmail.com**
+
+
 Python implementation for FHIR profile constraint validator.
 * Free software: BSD license
 
@@ -41,3 +46,9 @@ Installation
 
 Just a simple ``pip install fhir.profiling`` or ``easy_install fhir.profiling`` is enough. But if you want development
 version, just clone from https://github.com/nazrulworld/fhir.profiling and ``pip install -e .[dev]``.
+
+Copyright Disclaimer
+--------------------
+
+HL7® logo, FHIR® logo and the flaming fire are registered trademarks
+owned by `Health Level Seven International <https://www.hl7.org/legal/trademarks.cfm?ref=https://pypi.org/project/fhir.profiling/>`_

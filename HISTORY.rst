@@ -2,7 +2,7 @@
 History
 =======
 
-0.1.0 (unreleased)
+0.0.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Initial release for package registration purpose.
