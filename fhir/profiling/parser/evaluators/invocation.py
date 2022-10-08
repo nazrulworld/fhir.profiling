@@ -1,9 +1,13 @@
 # _*_ coding: utf-8 _*_
-from typing import Any, List, Optional, Union
+import logging
+from typing import Any, List, Optional
 
-from .base import EMPTY, Evaluation, EvaluatorBase, ValuedEvaluation
+from .base import EMPTY, Evaluation, EvaluatorBase
+from .utils import ensure_array, has_value
 
 __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
+
+LOG = logging.getLogger("evaluator.invocation")
 
 
 class InvocationExpressionEvaluator(EvaluatorBase):
@@ -14,21 +18,14 @@ class InvocationExpressionEvaluator(EvaluatorBase):
         self.add_node(node_left)
         self.add_node(node_right)
 
-    def evaluate(self, resource: Any) -> Evaluation:
+    def evaluate(self, input_collection: List[Any]) -> Evaluation:
         """ """
+        collection = ensure_array(input_collection)
         nodes = self.get_nodes()
-        value_evaluation = nodes.left.evaluate(resource)
-        if value_evaluation.has_error():
-            return value_evaluation.with_new_expression_in_error(self.get_expression())
-
-        value = value_evaluation.get_verdict(True)
-
+        value_evaluation = nodes.left.evaluate(collection)
         if nodes.right is EMPTY:
-            return value
-        value_evaluation = nodes.right.evaluate(value)
-        if value_evaluation.has_error():
-            return value_evaluation.with_new_expression_in_error(self.get_expression())
-        return value_evaluation
+            return value_evaluation
+        return nodes.right.evaluate(value_evaluation.value)
 
 
 class FunctionInvocationEvaluator(EvaluatorBase):
@@ -70,9 +67,32 @@ class FunctionInvocationEvaluator(EvaluatorBase):
     def exists(self):
         """ """
 
+    def hasValue(self):
+        """Returns true if the input collection contains a single value which is a FHIR primitive,
+        and it has a primitive value (e.g. as opposed to not having a value and just having extensions).
+        Otherwise, the return value is empty.
+
+        Note to implementers: The FHIR conceptual model talks about "primitives" as subclasses of the
+        type Element that also have id and extensions. What this actually means is that a FHIR primitive
+        is not a primitive in an implementation language. The introduction (section 2 above) describes
+        the navigation tree as if the FHIR model applies - primitives are both primitives and elements
+        with children.
+        In FHIRPath, this means that FHIR primitives have a value child, but,
+        as described above, they are automatically cast to FHIRPath primitives when
+        comparisons are made, and that the primitive value will be included in the set
+        returned by children() or descendants().
+        """
+
+    def children(self):
+        """Returns a collection with all immediate child nodes of all items
+        in the input collection. Note that the ordering of the children is
+        undefined and using functions like first() on the result may return
+        different results on different platforms."""
+
 
 class MemberInvocationEvaluator(EvaluatorBase):
     __antlr4_node_type__ = "MemberInvocation"
+    """https://hl7.github.io/fhirpath.js/"""
 
     def init(self, identifier: str):
         """ """
@@ -84,17 +104,20 @@ class MemberInvocationEvaluator(EvaluatorBase):
             raise ValueError("identifier is already assigned.")
         self.__storage__.append(node)
 
-    def evaluate(self, resource: Any) -> Union[Evaluation, ValuedEvaluation]:
+    def evaluate(self, input_collection: List[Any]) -> Evaluation:
         """ """
+        collection = ensure_array(input_collection)
         nodes = self.get_nodes()
-        try:
-            value: Any = getattr(resource, nodes.left)
-            return ValuedEvaluation(value)
-        except AttributeError as exc:
-            err_message = (
-                f"'{type(resource).__name__}' object has no attribute '{nodes.left}'."
-            )
-            return Evaluation.with_error(err_message, self.get_expression(), exc)
+        result = []
+        for item in collection:
+            try:
+                val = item.get(nodes.left, [])
+                if has_value(val):
+                    result.append(val)
+            except (AttributeError, TypeError) as exc:
+                LOG.debug(str(exc), exc_info=exc)
+
+        return Evaluation(result)
 
 
 __all__ = [

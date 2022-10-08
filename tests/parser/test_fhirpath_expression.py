@@ -5,7 +5,10 @@ __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
 
 
 def test_compile_fhirpath_expression():
-    """ """
+    """Number of id elements (that would be 0 or 1 I guess)
+    Lloyd McKenzie5:12 AM
+In other words, an element must have actual 'content' - and the id for the element isn't considered to be 'content'.
+     """
     # https: // docs.ehealth.sundhed.dk / latest - released / ig / StructureDefinition - ehealth - itcompetencelevel - definitions.html
     # (name.family.exists() or name.given.exists()) xor extension.where(url='http://hl7.org/fhir/StructureDefinition/data-absent-reason').exists()
     rstm = compile_fhirpath_expression(

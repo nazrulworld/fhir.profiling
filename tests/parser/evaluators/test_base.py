@@ -7,30 +7,25 @@ __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
 
 def test_evaluation():
     """ """
-    evaluation = base.Evaluation()
+    evaluation = base.Evaluation(True)
     assert bool(evaluation) is True
-    assert evaluation.has_error() is False
-    with pytest.raises(TypeError) as excinfo:
-        evaluation.error = "some value"
-    assert str(excinfo.value) == "Readonly object!"
+    assert evaluation.get_verdict() is True
+    assert evaluation.value[0] is True
 
-    evaluation = base.Evaluation(error=base.EMPTY)
+    evaluation = base.Evaluation(False)
+    assert bool(evaluation) is False
     assert evaluation.get_verdict() is False
-    assert evaluation.has_error() is False
+    assert evaluation.value[0] is False
 
+    evaluation = base.Evaluation(0)
+    assert evaluation.get_verdict() is True
+    assert evaluation.value[0] == 0
 
-def test_valued_evaluation():
-    """ """
-    evaluation = base.ValuedEvaluation("Hello")
-    assert evaluation.has_error() is False
-    assert evaluation.get_verdict() == "Hello"
+    evaluation = base.Evaluation([])
+    assert evaluation.get_verdict() is False
 
-    evaluation = base.ValuedEvaluation(
-        value=base.EMPTY, error=base.EvaluationError(None, "fake.id")
-    )
-    assert evaluation.has_error() is True
-    with pytest.raises(ValueError) as exc:
-        evaluation.get_verdict(raise_on_error=True)
+    evaluation = base.Evaluation(["some value"])
+    assert evaluation.get_verdict() is True
 
 
 def test_member_invocation_evaluator():

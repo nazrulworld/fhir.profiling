@@ -13,18 +13,19 @@ def test_member_invocation():
     """ """
     expression_node = compile_fhirpath_expression("active")
     evaluator = expression_node.construct_evaluator()
-    val = evaluator.evaluate(US_PATIENT_1)
+    val = evaluator.evaluate(US_PATIENT_1.dict())
     assert val.get_verdict() is True
+    assert val.value[0] is True
 
     expression_node = compile_fhirpath_expression("text.status")
     evaluator = expression_node.construct_evaluator()
-    val = evaluator.evaluate(US_PATIENT_1)
-    assert val.get_verdict() == "generated"
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.value[0] == "generated"
+    assert val.get_verdict() is True
 
     # Test with error handling
     expression_node = compile_fhirpath_expression("text.unknown")
     evaluator = expression_node.construct_evaluator()
-    val = evaluator.evaluate(US_PATIENT_1)
-    assert val.has_error() is True
-    assert isinstance(val.error, api.EvaluationError)
-    assert val.error.expression == "text.unknown"
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is False
+    assert len(val.value) == 0

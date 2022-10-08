@@ -1,23 +1,12 @@
 # _*_ coding: utf-8 _*_
 import abc
-from collections import deque, namedtuple
+from collections import deque
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Deque, Optional, Union, cast
+from typing import Any, Deque, List, Optional, Union, cast
+
+from .utils import EMPTY, NULL, LeftRightTuple, ensure_array, has_value
 
 __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
-
-
-class Empty:
-    __slots__ = ()
-
-
-class Null:
-    __slots__ = ()
-
-
-EMPTY = Empty()
-NULL = Null()
-LeftRightTuple = namedtuple("LeftRightTuple", ["left", "right"], rename=False)
 
 
 @dataclass(init=True)
@@ -34,168 +23,38 @@ class ReadonlyClass:
         raise TypeError("Readonly object!")
 
 
-class ValidationError(Exception):
-    """ """
-
-    __slots__ = ("message", "exc")
-
-    def __init__(self, message: str, exc: Exception = None):
-        """ """
-        self.exc = exc
-        self.message = message
-        Exception.__init__(self, message)
-
-
 class EvaluationError(Exception, ReadonlyClass):
     """@todo: contact errors"""
 
-    __slots__ = ("error", "expression")
+    __slots__ = ("msg", "expression")
 
-    def __init__(self, error: ValidationError, expression: str):
+    def __init__(self, msg: str, expression: str):
         """ """
-        object.__setattr__(self, "error", error)
+        object.__setattr__(self, "msg", msg)
         object.__setattr__(self, "expression", expression)
-
-    def rebuild(self, expression: str) -> "EvaluationError":
-        """ """
-        return self.__class__(self.error, expression)
-
-    @classmethod
-    def build(cls, message: str, expression: str, exc: Exception = None):
-        """ """
-        error = ValidationError(message, exc)
-        return cls(error, expression)
-
-
-def extract_value(node: Any, resource: Any = EMPTY) -> Any:
-    """ """
-    if node is EMPTY:
-        # no evaluator
-        return resource
-    if resource is EMPTY and isinstance(node, EvaluatorBase):
-        raise ValueError
-    if isinstance(node, EvaluatorBase):
-        value_evaluate = node.evaluate(resource)
-        if isinstance(value_evaluate, Evaluation):
-            # @todo: need better error handling
-            value = value_evaluate.get_verdict(True)
-        else:
-            value = value_evaluate
-    else:
-        value = node
-    return value
-
-
-def validate_both_nodes_boolean(
-    value_left: Union["EvaluationError", bool],
-    value_right: Union["EvaluationError", bool],
-):
-    if not all(
-        [
-            isinstance(value_left, (EvaluationError, bool)),
-            isinstance(value_right, (EvaluationError, bool)),
-        ]
-    ):
-        # @todo: proper error need to be returned
-        raise ValueError
+        Exception.__init__(self, msg)
 
 
 class Evaluation(abc.ABC, ReadonlyClass):
     """ """
 
-    __slots__ = ("error", "success")
+    __slots__ = ("value",)
 
-    def __init__(self, error: Union["EvaluationError", Empty] = None):
-        """Terms for variable error.
-        case-1 error value is None:  evaluation's result True
-        case-2 error value is EMPTY: evaluation's result False
-        case-3 error value: exception happening
-        """
-        object.__setattr__(self, "error", error)
-        success = None
-        if error is EMPTY:
-            success = False
-        elif error is None:
-            success = True
-        object.__setattr__(self, "success", success)
+    def __init__(self, value: List[Any]):
+        """Terms for variable error."""
+        object.__setattr__(self, "value", ensure_array(value))
 
-    def has_error(self):
+    def get_verdict(self) -> bool:
         """ """
-        return self.error not in (None, EMPTY)
-
-    def with_new_expression_in_error(self, expression: str):
-        """ """
-        if self.has_error():
-            return self.__class__(error=self.error.rebuild(expression=expression))
-        raise TypeError("Cannot set error!")
-
-    @classmethod
-    def with_error(
-        cls, message: str, expression: str, exc: Exception = None
-    ) -> "Evaluation":
-        """ """
-        error = EvaluationError.build(message=message, expression=expression, exc=exc)
-        return cls(error=error)
-
-    @classmethod
-    def with_true(cls) -> "Evaluation":
-        """ """
-        return cls(error=None)
-
-    @classmethod
-    def with_false(cls) -> "Evaluation":
-        """ """
-        return cls(error=EMPTY)
-
-    def get_verdict(self, raise_on_error: bool = False):
-        """ """
-        if self.has_error() and raise_on_error:
-            raise ValueError
-        return self.success
-
-    def __bool__(self) -> bool:
-        """ """
-        return self.success is None and False or self.success
-
-
-class ValuedEvaluation(Evaluation):
-    """ """
-
-    __slots__ = ("value",) + Evaluation.__slots__
-
-    def __init__(
-        self,
-        value: Any,
-        error: Optional["ValidationError"] = None,
-    ):
-        """ """
-        Evaluation.__init__(self, error)
-        if TYPE_CHECKING:
-            self.value = None
-        object.__setattr__(self, "value", value)
-
-    def get_verdict(self, raise_on_error: bool = False):
-        """ """
-        if self.value is not EMPTY:
-            return self.value
-        return Evaluation.get_verdict(self, raise_on_error)
-
-    def __bool__(self) -> bool:
-        """ """
-        if self.value is EMPTY:
+        if has_value(self.value) is False:
             return False
-        if isinstance(self.value, bool):
-            return self.value
-        if isinstance(self.value, (dict, list, set)):
-            return len(self.value) > 0
-        if self.value:
-            return True
-        return Evaluation.__bool__(self)
+        if len(self.value) == 1 and isinstance(self.value[0], bool):
+            return self.value[0]
+        return True
 
-    @classmethod
-    def with_value(cls, value: Any) -> "ValuedEvaluation":
+    def __bool__(self) -> bool:
         """ """
-        return cls(value=value, error=None)
+        return self.get_verdict()
 
 
 class EvaluatorBase:
@@ -210,7 +69,7 @@ class EvaluatorBase:
         self.__predecessor__: Optional["EvaluatorBase"] = None
         self.__storage__: Deque[Any] = deque(maxlen=2)
 
-    def evaluate(self, resource: Any) -> Evaluation:
+    def evaluate(self, input_collection: List[Any]) -> Evaluation:
         """ """
         raise NotImplementedError
 
@@ -244,6 +103,13 @@ class EvaluatorBase:
     def get_predecessor(self):
         """ """
         return self.__predecessor__
+
+    @staticmethod
+    def ensure_evaluation(value: Any):
+        """ """
+        if isinstance(value, Evaluation):
+            return value
+        return Evaluation(value)
 
 
 class LogicalOperator(EvaluatorBase):
@@ -282,17 +148,33 @@ class LogicalOperator(EvaluatorBase):
     def evaluate(self, resource: Any = EMPTY) -> Evaluation:
         """ """
         nodes = self.get_nodes()
-        value_left = extract_value(nodes.left, resource)
-        value_right = extract_value(nodes.right, resource)
+        evaluation_left = LogicalOperator.extract_value(nodes.left, resource)
+        evaluation_right = LogicalOperator.extract_value(nodes.right, resource)
+        self.validate(evaluation_left, evaluation_right)
+        return getattr(self, self.__operators__[self.operator])(
+            evaluation_left, evaluation_right
+        )
 
-        value = self.validate(value_left, value_right)
-        if value is not None:
-            return value
+    @staticmethod
+    def return_false() -> Evaluation:
+        """ """
+        return Evaluation([False])
 
-        if type(value_left) != type(value_right):
+    @staticmethod
+    def return_true() -> Evaluation:
+        """ """
+        return Evaluation([True])
+
+    @staticmethod
+    def extract_value(node: Any, resource: Any = EMPTY) -> Any:
+        """ """
+        if node is EMPTY and resource is not EMPTY:
+            return EvaluatorBase.ensure_evaluation(resource)
+        if resource is EMPTY and isinstance(node, EvaluatorBase):
             raise ValueError
-
-        return getattr(self, self.__operators__[self.operator])(value_left, value_right)
+        if isinstance(node, EvaluatorBase):
+            return node.evaluate(resource)
+        return EvaluatorBase.ensure_evaluation(node)
 
 
 class ParenthesizedTermEvaluator(EvaluatorBase):
