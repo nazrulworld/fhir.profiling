@@ -63,23 +63,23 @@ class ExpressionNode(BaseModel):
             me.init(left_node, right_node)
             return ExpressionNode.finalize(me, evaluator)
 
-        if self.node_type in ("EqualityExpression", "InequalityExpression"):
+        if self.node_type in (
+            "EqualityExpression",
+            "InequalityExpression",
+            "IndexerExpression",
+        ):
             me = getattr(api, self.node_type + "Evaluator")(
                 self.terminal_node_text[0], expression=self.text
             )
-            assert self.children[0].node_type == "TermExpression"
-            left_node = ExpressionNode.parse_term_expression(self.children[0])
-            right_node = ExpressionNode.parse_term_expression(self.children[1])
-            me.init(left_node, right_node)
-            return ExpressionNode.finalize(me, evaluator)
+            if self.children[0].node_type == "TermExpression":
+                left_node = ExpressionNode.parse_term_expression(self.children[0])
+            else:
+                left_node = self.children[0].construct_evaluator(me)
 
-        if self.node_type in ("EqualityExpression", "InequalityExpression"):
-            me = getattr(api, self.node_type + "Evaluator")(
-                self.terminal_node_text[0], expression=self.text
-            )
-            assert self.children[0].node_type == "TermExpression"
-            left_node = ExpressionNode.parse_term_expression(self.children[0])
-            right_node = ExpressionNode.parse_term_expression(self.children[1])
+            if self.children[1].node_type == "TermExpression":
+                right_node = ExpressionNode.parse_term_expression(self.children[1])
+            else:
+                right_node = self.children[1].construct_evaluator(me)
             me.init(left_node, right_node)
             return ExpressionNode.finalize(me, evaluator)
 

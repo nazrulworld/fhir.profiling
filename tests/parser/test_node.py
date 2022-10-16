@@ -171,3 +171,11 @@ def test_construct_evaluator_from_invocation_expression():
     assert isinstance(nodes_1_1.right, api.MemberInvocationEvaluator)
     assert nodes_1_1.left.get_nodes().left == "code"
     assert nodes_1_1.right.get_nodes().left == "coding"
+
+
+def test_construct_evaluator_from_indexer_expression():
+    """ """
+    expression_node = compile_fhirpath_expression("name[1]")
+    nodes = expression_node.construct_evaluator().get_nodes()
+    assert nodes.right == 1
+    assert isinstance(nodes.left, api.MemberInvocationEvaluator)

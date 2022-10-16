@@ -30,6 +30,6 @@ def test_evaluation():
 
 def test_member_invocation_evaluator():
     """ """
-    expression = "gender.exist()"
+    expression = "contained.all($this.is(%Patient) implies age > 10)"
     expression_node = compile_fhirpath_expression(expression)
 

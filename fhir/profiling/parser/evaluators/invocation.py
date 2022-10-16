@@ -3,7 +3,7 @@ import logging
 from typing import Any, List, Optional
 
 from .base import EMPTY, Evaluation, EvaluatorBase
-from .utils import ensure_array, has_value
+from .utils import ensure_array, has_value, PRIMITIVES
 
 __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
 
@@ -43,31 +43,115 @@ class FunctionInvocationEvaluator(EvaluatorBase):
     ):
         """param_list: (param name, param value, EqualityExpression)"""
         EvaluatorBase.__init__(self, expression)
-        self.func_name = None
-        self.param_list = None
+        self.func_name: str = ""
+        self.param_list: Optional[List[EvaluatorBase]] = None
 
     def init(self, func_name: str, param_list: Optional[List[EvaluatorBase]] = None):
         try:
+            if func_name in ("not", "is", "as"):
+                func_name += "_"
             getattr(self, func_name)
             self.func_name = func_name
         except AttributeError:
             raise ValueError
         self.param_list = param_list
 
-    def evaluate(self, resource: Any) -> Evaluation:
+    def evaluate(self, input_collection: List[Any]) -> Evaluation:
         """ """
-        return getattr(self, self.func_name)(resource, param_list=self.param_list)
+        collection = ensure_array(input_collection)
+        return getattr(self, self.func_name)(collection)
 
-    def where(self):
-        """ """
+    def where(self, collection: List[Any]) -> Evaluation:
+        """5.2. Filtering and projection
+        5.2.1. where(criteria : expression) : collection
+        Returns a collection containing only those elements in the input collection for
+        which the stated criteria expression evaluates to true. Elements for which the expression
+        evaluates to false or empty ({ }) are not included in the result.
 
-    def count(self):
-        """ """
+        If the input collection is empty ({ }), the result is empty.
 
-    def exists(self):
-        """ """
+        If the result of evaluating the condition is other than a single boolean value,
+        the evaluation will end and signal an error to the calling environment, consistent with
+        singleton evaluation of collections behavior.
 
-    def hasValue(self):
+        The following example returns the list of telecom elements that have a use element with the
+        value of 'official':
+        Patient.telecom.where(use = 'official')
+        """
+        result = []
+        for item in collection:
+            if all(
+                [
+                    evaluator.evaluate(item).get_verdict()
+                    for evaluator in self.param_list
+                ]
+            ):
+                result.append(item)
+        return Evaluation(result)
+
+    def count(self, collection: List[Any]):
+        """5.1.10. count() : Integer
+        Returns the integer count of the number of items in the input collection.
+        Returns 0 when the input collection is empty.
+        :return:
+        """
+        return Evaluation(len(collection))
+
+    def exists(self, collection: List[Any]) -> Evaluation:
+        """5.1.2. exists([criteria : expression]) : Boolean
+        Returns true if the collection has any elements, and false otherwise. This is the opposite of empty(),
+        and as such is a shorthand for empty().not(). If the input collection is empty ({ }), the result is false.
+
+        The function can also take an optional criteria to be applied to the collection prior to the
+        determination of the exists. In this case, the function is shorthand for where(criteria).exists().
+
+        Note that a common term for this function is any.
+
+        The following examples illustrate some potential uses of the exists() function:
+
+        Patient.name.exists()
+        Patient.identifier.exists(use = 'official')
+        Patient.telecom.exists(system = 'phone' and use = 'mobile')
+        Patient.generalPractitioner.exists($this is Practitioner)
+        The first example returns true if the Patient has any name elements.
+
+        The second example returns true if the Patient has any identifier elements that have a use element equal to 'official'.
+
+        The third example returns true if the Patient has any telecom elements that have a system element equal to 'phone' and a use element equal to 'mobile'.
+
+        And finally, the fourth example returns true if the Patient has any generalPractitioner elements of type Practitioner.
+        """
+        if self.param_list is None:
+            return Evaluation([len(collection) > 0])
+        eva = self.where(collection)
+        return Evaluation(eva.get_verdict())
+
+    def trace(self):
+        """5.9.1. trace(name : String [, projection: Expression]) : collection
+        Adds a String representation of the input collection to the diagnostic log, using the name argument as the name in the log. This log should be made available to the user in some appropriate fashion. Does not change the input, so returns the input collection as output.
+
+        If the projection argument is used, the trace would log the result of evaluating the project expression on the input, but still return the input to the trace function unchanged.
+
+        contained.where(criteria).trace('unmatched', id).empty()
+        The above example traces only the id elements of the result of the where.
+        """
+
+    def empty(self, collection: List[Any]) -> Evaluation:
+        """5.1.1. empty() : Boolean
+        Returns true if the input collection is empty ({ }) and false otherwise.
+        """
+        return Evaluation([len(collection) == 0])
+
+    def not_(self, collection: List[Any]):
+        """6.5.3. not() : Boolean
+        Returns true if the input collection evaluates to false, and false if it evaluates to true. Otherwise, the result is empty ({ }):
+        :return:
+        """
+        if len(collection) > 0:
+            return Evaluation([not collection[0]])
+        return Evaluation([True])
+
+    def hasValue(self, collection: List[Any]) -> Evaluation:
         """Returns true if the input collection contains a single value which is a FHIR primitive,
         and it has a primitive value (e.g. as opposed to not having a value and just having extensions).
         Otherwise, the return value is empty.
@@ -82,12 +166,56 @@ class FunctionInvocationEvaluator(EvaluatorBase):
         comparisons are made, and that the primitive value will be included in the set
         returned by children() or descendants().
         """
+        ignores = ["id", "resourceType"]
+        results = []
+        for item in collection:
+            for key, val in item.items():
+                if key in ignores:
+                    continue
+                if isinstance(val, PRIMITIVES):
+                    results.append(True)
+                    break
+        return Evaluation(results)
 
-    def children(self):
+    def children(self, collection: List[Any]) -> Evaluation:
         """Returns a collection with all immediate child nodes of all items
         in the input collection. Note that the ordering of the children is
         undefined and using functions like first() on the result may return
         different results on different platforms."""
+        result = []
+        try:
+            for item in collection:
+                result.append(list(item.values()))
+        except AttributeError:
+            pass
+        return Evaluation(result)
+
+    def descendants(self):
+        """5.8.2. descendants() : collection
+        Returns a collection with all descendant nodes of all items in the input collection.
+        The result does not include the nodes in the input collection themselves.
+        This function is a shorthand for repeat(children()).
+        Note that the ordering of the children is undefined and using functions like first()
+        on the result may return different results on different platforms.
+
+        Note: Many of these functions will result in a set of nodes of different underlying types.
+        It may be necessary to use ofType() as described in the previous section to maintain
+        type safety. See Type safety and strict evaluation for more information about type safe use
+        of FHIRPath expressions.
+        """
+
+    def as_(self):
+        """6.3.4. as(type : type specifier)
+        The as() function is supported for backwards compatibility with previous
+        implementations of FHIRPath. Just as with the as keyword, the type argument is an identifier
+        that must resolve to the name of a type in a model. For implementations with compile-time typing, this requires special-case handling when processing the argument to treat is a type specifier rather than an identifier expression:
+
+        Observation.component.where(value.as(Quantity) > 30 'mg')
+        Note: The as() function is defined for backwards compatibility only and may be
+        deprecated in a future release."""
+
+    def is_(self):
+        """ """
 
 
 class MemberInvocationEvaluator(EvaluatorBase):

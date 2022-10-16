@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 
 from .base import Evaluation, EvaluatorBase, LogicalOperator
 from .invocation import MemberInvocationEvaluator
-from .utils import ensure_array
+from .utils import ensure_array, simplify
 
 __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
 
@@ -12,6 +12,14 @@ class IndexerExpressionEvaluator(EvaluatorBase):
     """ """
 
     __antlr4_node_type__ = "IndexerExpression"
+
+    def __init__(
+        self,
+        operator: str,
+        expression: Optional[str] = None,
+    ):
+        """ """
+        EvaluatorBase.__init__(self, expression)
 
     def init(self, member_invocation: MemberInvocationEvaluator, index: int):
         """ """
@@ -81,11 +89,21 @@ class AndExpressionEvaluator(LogicalOperator):
 
 
 class EqualityExpressionEvaluator(LogicalOperator):
-    """ """
+    """http://hl7.org/fhirpath/N1/#equality
+    ~ (Equivalence)
+    Equivalence works in exactly the same manner, but with the addition that for complex types,
+    equality requires all child properties to be equal, except for "id" elements.
+    In addition, for Coding values, equivalence is defined based on the code and
+    system elements only. The version, display, and userSelected elements are ignored for
+    the purposes of determining Coding equivalence.
+    For CodeableConcept values, equivalence is defined as a non-empty intersection of Coding elements,
+    using equivalence. In other words, two CodeableConcepts are considered equivalent if any
+    Coding in one is equivalent to any Coding in the other.
+    """
 
     __operators__ = {
         "=": "eq",
-        "~": "undefined",
+        "~": "equivalent",
         "!=": "ne",
         "!~": "undefined",
     }
@@ -98,12 +116,91 @@ class EqualityExpressionEvaluator(LogicalOperator):
     ):
         """ """
         # @todo: blind compare?
-        return Evaluation([left_evaluation.value == right_evaluation.value])
+        return Evaluation(
+            [simplify(left_evaluation.value) == simplify(right_evaluation.value)]
+        )
 
     def ne(self, left_evaluation: Evaluation, right_evaluation: Evaluation):
-        """ """
+        """6.1.3. != (Not Equals)
+        The converse of the equals operator, returning true if equal returns false;
+        false if equal returns true; and empty ({ }) if equal returns empty.
+        In other words, A != B is short-hand for (A = B).not()."""
         # @todo: blind compare?
-        return Evaluation([left_evaluation.value != right_evaluation.value])
+        return Evaluation(
+            [simplify(left_evaluation.value) != simplify(right_evaluation.value)]
+        )
+
+    def equivalent(self):
+        """6.1.2. ~ (Equivalent)
+        Returns true if the collections are the same. In particular, comparing empty collections for
+        equivalence { } ~ { } will result in true.
+        If both operands are collections with a single item, they must be of the same type
+        (or implicitly convertible to the same type), and:
+
+        For primitives
+
+        String: the strings must be the same, ignoring case and locale, and normalizing
+        whitespace (see String Equivalence for more details).
+
+        Integer: exactly equal
+
+        Decimal: values must be equal, comparison is done on values
+        rounded to the precision of the least precise operand. Trailing zeroes after t
+        he decimal are ignored in determining precision.
+
+        Date, DateTime and Time: values must be equal, except that if the input values
+        have different levels of precision, the comparison returns false, not empty ({ }).
+
+        Boolean: the values must be the same
+
+        For complex types, equivalence requires all child properties to be equivalent, recursively.
+
+        If both operands are collections with multiple items:
+
+        Each item must be equivalent
+
+        Comparison is not order dependent
+
+        Note that this implies that if the collections have a different number of items to compare,
+        or if one input is a value and the other is empty ({ }), the result will be false.
+
+        Quantity Equivalence
+        When comparing quantities for equivalence, the dimensions of each quantity must be the same,
+         but not necessarily the unit. For example, units of 'cm' and 'm' can be compared,
+         but units of 'cm2' and 'cm' cannot. The comparison will be made using the most granular
+         unit of either input. Attempting to operate on quantities with invalid units will result in false.
+
+        For time-valued quantities, calendar durations and definite quantity durations are
+         considered equivalent:
+
+        1 year ~ 1 'a' // true
+        1 second ~ 1 's' // true
+        Implementations are not required to fully support operations on units,
+         but they must at least respect units, recognizing when units differ.
+
+        Implementations that do support units shall do so as specified by [UCUM] as
+        well as the calendar durations as defined in the toQuantity function.
+
+        Date/Time Equivalence
+        For Date, DateTime and Time equivalence, the comparison is the same as for equality,
+         with the exception that if the input values have different levels of precision,
+          the result is false, rather than empty ({ }). As with equality, the second and millisecond
+          precisions are considered a single precision using a decimal, with decimal equivalence semantics.
+        For example:
+        @2012 ~ @2012 // returns true
+        @2012 ~ @2013 // returns false
+        @2012-01 ~ @2012 // returns false as well
+        @2012-01-01T10:30 ~ @2012-01-01T10:30 // returns true
+        @2012-01-01T10:30 ~ @2012-01-01T10:31 // returns false
+        @2012-01-01T10:30:31 ~ @2012-01-01T10:30 // returns false as well
+        @2012-01-01T10:30:31.0 ~ @2012-01-01T10:30:31 // returns true
+        @2012-01-01T10:30:31.1 ~ @2012-01-01T10:30:31 // returns false
+        String Equivalence
+        For strings, equivalence returns true if the strings are the same value while
+        ignoring case and locale, and normalizing whitespace. Normalizing whitespace means
+        that all whitespace characters are treated as equivalent, with whitespace characters as
+        defined in the Whitespace lexical category.
+        """
 
 
 class InequalityExpressionEvaluator(LogicalOperator):
@@ -208,11 +305,50 @@ class InequalityExpressionEvaluator(LogicalOperator):
 class MembershipExpressionEvaluator(LogicalOperator):
     """ """
 
-    __equality_operators__ = (
+    __operators__ = (
         "in",
         "contains",
     )
     __antlr4_node_type__ = "MembershipExpression"
+
+
+class TypeExpressionEvaluator:
+    """6.3. Types"""
+
+    def is_(self):
+        """6.3.1. is type specifier
+        If the left operand is a collection with a single item and the second operand is a type identifier, this operator returns true if the type of the left operand is the type specified in the second operand, or a subclass thereof. If the input value is not of the type, this operator returns false. If the identifier cannot be resolved to a valid type identifier, the evaluator will throw an error. If the input collections contains more than one item, the evaluator will throw an error. In all other cases this operator returns the empty collection.
+
+        A type specifier is an identifier that must resolve to the name of a type in a model. Type specifiers can have qualifiers, e.g. FHIR.Patient, where the qualifier is the name of the model.
+
+        Patient.contained.all($this is Patient implies age > 10)
+        :return:
+        """
+
+    def as_(self):
+        """6.3.3. as type specifier
+        If the left operand is a collection with a single item and the second operand is an identifier, this operator returns the value of the left operand if it is of the type specified in the second operand, or a subclass thereof. If the identifier cannot be resolved to a valid type identifier, the evaluator will throw an error. If there is more than one item in the input collection, the evaluator will throw an error. Otherwise, this operator returns the empty collection.
+
+        A type specifier is an identifier that must resolve to the name of a type in a model. Type specifiers can have qualifiers, e.g. FHIR.Patient, where the qualifier is the name of the model.
+
+        Observation.component.where(value as Quantity > 30 'mg')
+        :return:
+        """
+
+
+class ImpliesExpressionEvaluator:
+    """6.5.5. implies
+    If the left operand evaluates to true, this operator returns the boolean evaluation of
+    the right operand. If the left operand evaluates to false, this operator returns true.
+    Otherwise, this operator returns true if the right operand evaluates to true, and the empty collection ({ }) otherwise.
+    The implies operator is useful for testing conditionals. For example,
+    if a given name is present, then a family name must be as well:
+
+    Patient.name.given.exists() implies Patient.name.family.exists()
+    CareTeam.onBehalfOf.exists() implies (CareTeam.member.resolve() is Practitioner)
+    StructrureDefinition.contextInvariant.exists() implies StructureDefinition.type = 'Extension'
+    Note that implies may use short-circuit evaluation in the case that the first operand evaluates to false.
+    """
 
 
 __all__ = [

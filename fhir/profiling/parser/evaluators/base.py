@@ -4,7 +4,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Deque, List, Optional, Union, cast
 
-from .utils import EMPTY, NULL, LeftRightTuple, ensure_array, has_value
+from .utils import EMPTY, NULL, LeftRightTuple, ensure_array, has_value, finalize_value
 
 __author__ = "Md Nazrul Islam<email2nazrul@gmail.com>"
 
@@ -40,9 +40,9 @@ class Evaluation(abc.ABC, ReadonlyClass):
 
     __slots__ = ("value",)
 
-    def __init__(self, value: List[Any]):
+    def __init__(self, value: Any):
         """Terms for variable error."""
-        object.__setattr__(self, "value", ensure_array(value))
+        object.__setattr__(self, "value", finalize_value(ensure_array(value)))
 
     def get_verdict(self) -> bool:
         """ """
@@ -55,6 +55,10 @@ class Evaluation(abc.ABC, ReadonlyClass):
     def __bool__(self) -> bool:
         """ """
         return self.get_verdict()
+
+    def __len__(self):
+        """ """
+        return len(self.value)
 
 
 class EvaluatorBase:
