@@ -54,3 +54,85 @@ def test_and_expression():
     val = evaluator.evaluate(US_PATIENT_1.dict())
     assert val.get_verdict() is True
     assert val.value == [True]
+
+
+def test_inequality_expression_le():
+    """ """
+    expression_node = compile_fhirpath_expression("meta.profile.count() <= 1")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
+
+    expression_node = compile_fhirpath_expression("extension[1].extension.count() <= 4")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
+
+    expression_node = compile_fhirpath_expression("id.count() <= 2")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+
+
+def test_inequality_expression_lt():
+    """ """
+    expression_node = compile_fhirpath_expression(
+        "meta.profile.where(url='not_exists').count() < 1"
+    )
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
+
+    expression_node = compile_fhirpath_expression("extension[1].extension.count() < 5")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
+
+    expression_node = compile_fhirpath_expression("id.count() < 2")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+
+
+def test_inequality_expression_ge():
+    """ """
+    expression_node = compile_fhirpath_expression("meta.profile.count() >= 1")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
+
+    expression_node = compile_fhirpath_expression("extension[1].extension.count() >= 4")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
+
+    expression_node = compile_fhirpath_expression("id.count() >= 2")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is False
+
+
+def test_inequality_expression_gt():
+    """ """
+    expression_node = compile_fhirpath_expression("meta.profile.count() > 0")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
+
+    expression_node = compile_fhirpath_expression("extension[1].extension.count() > 2")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
+
+    expression_node = compile_fhirpath_expression("id.count() > 1")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is False

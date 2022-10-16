@@ -217,6 +217,7 @@ class InequalityExpressionEvaluator(LogicalOperator):
         if (len(left_evaluation.value) != len(right_evaluation.value)) or not all(
             [left_evaluation.get_verdict(), right_evaluation.get_verdict()]
         ):
+
             return LogicalOperator.return_false()
 
     def lt(
@@ -231,14 +232,16 @@ class InequalityExpressionEvaluator(LogicalOperator):
 
         if len(left_evaluation.value) == 1:
             try:
-                return Evaluation([left_evaluation.value < right_evaluation.value])
+                return Evaluation(
+                    [simplify(left_evaluation.value) < simplify(right_evaluation.value)]
+                )
             except TypeError as exc:
                 # @TODO: logging
                 return LogicalOperator.return_false()
 
         result = []
         for idx, value in left_evaluation.value:
-            result.append(value < right_evaluation.value[idx])
+            result.append(simplify(value) < simplify(right_evaluation.value[idx]))
         return Evaluation(result)
 
     def gt(self, left_evaluation: Evaluation, right_evaluation: Evaluation):
@@ -251,14 +254,16 @@ class InequalityExpressionEvaluator(LogicalOperator):
 
         if len(left_evaluation.value) == 1:
             try:
-                return Evaluation([left_evaluation.value > right_evaluation.value])
+                return Evaluation(
+                    [simplify(left_evaluation.value) > simplify(right_evaluation.value)]
+                )
             except TypeError as exc:
                 # @TODO: logging
                 return LogicalOperator.return_false()
 
         result = []
         for idx, value in left_evaluation.value:
-            result.append(value > right_evaluation.value[idx])
+            result.append(simplify(value) > simplify(right_evaluation.value[idx]))
         return Evaluation(result)
 
     def le(self, left_evaluation: Evaluation, right_evaluation: Evaluation):
@@ -271,14 +276,19 @@ class InequalityExpressionEvaluator(LogicalOperator):
 
         if len(left_evaluation.value) == 1:
             try:
-                return Evaluation([left_evaluation.value <= right_evaluation.value])
+                return Evaluation(
+                    [
+                        simplify(left_evaluation.value)
+                        <= simplify(right_evaluation.value)
+                    ]
+                )
             except TypeError as exc:
                 # @TODO: logging
                 return LogicalOperator.return_false()
 
         result = []
         for idx, value in left_evaluation.value:
-            result.append(value <= right_evaluation.value[idx])
+            result.append(simplify(value) <= simplify(right_evaluation.value[idx]))
         return Evaluation(result)
 
     def ge(self, left_evaluation: Evaluation, right_evaluation: Evaluation):
@@ -291,14 +301,19 @@ class InequalityExpressionEvaluator(LogicalOperator):
 
         if len(left_evaluation.value) == 1:
             try:
-                return Evaluation([left_evaluation.value >= right_evaluation.value])
+                return Evaluation(
+                    [
+                        simplify(left_evaluation.value)
+                        >= simplify(right_evaluation.value)
+                    ]
+                )
             except TypeError as exc:
                 # @TODO: logging
                 return LogicalOperator.return_false()
 
         result = []
         for idx, value in left_evaluation.value:
-            result.append(value >= right_evaluation.value[idx])
+            result.append(simplify(value) >= simplify(right_evaluation.value[idx]))
         return Evaluation(result)
 
 
