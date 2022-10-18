@@ -33,6 +33,14 @@ def test_member_invocation():
     evaluator = expression_node.construct_evaluator()
     assert len(evaluator.evaluate(US_PATIENT_1.dict()).value) == 2
 
+    expression_node = compile_fhirpath_expression("extension.url")
+    evaluator = expression_node.construct_evaluator()
+    assert len(evaluator.evaluate(US_PATIENT_1.dict()).value) == 4
+    assert (
+        "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race"
+        in evaluator.evaluate(US_PATIENT_1.dict()).value
+    )
+
 
 def test_functional_invocation():
     """ """

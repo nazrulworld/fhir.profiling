@@ -136,3 +136,41 @@ def test_inequality_expression_gt():
     evaluator = expression_node.construct_evaluator()
     val = evaluator.evaluate(US_PATIENT_1.dict())
     assert val.get_verdict() is False
+
+
+def test_equality_expression_eq():
+    """ """
+    expression_node = compile_fhirpath_expression(
+        "meta.profile = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient'"
+    )
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
+
+    expression_node = compile_fhirpath_expression(
+        "extension.url = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-race'"
+    )
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is False
+    assert val.value == [False]
+
+
+def test_equality_expression_ne():
+    """ """
+    expression_node = compile_fhirpath_expression(
+        "meta.profile != 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient'"
+    )
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is False
+    assert val.value == [False]
+
+    expression_node = compile_fhirpath_expression(
+        "extension.url != 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-race'"
+    )
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
