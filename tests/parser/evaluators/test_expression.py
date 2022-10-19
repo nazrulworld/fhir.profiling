@@ -174,3 +174,43 @@ def test_equality_expression_ne():
     val = evaluator.evaluate(US_PATIENT_1.dict())
     assert val.get_verdict() is True
     assert val.value == [True]
+
+
+def test_membership_expression_in():
+    """ """
+    expression_node = compile_fhirpath_expression("'Amy' in name.given")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
+
+    expression_node = compile_fhirpath_expression("'Amy' in name.non-exists")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is False
+
+    expression_node = compile_fhirpath_expression("{} in name.given")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is False
+    assert val.value == []
+
+
+def test_membership_expression_contains():
+    """ """
+    expression_node = compile_fhirpath_expression("name.given contains 'Amy'")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is True
+    assert val.value == [True]
+
+    expression_node = compile_fhirpath_expression("name.non-exists contains 'Amy'")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is False
+
+    expression_node = compile_fhirpath_expression("name.given contains {}")
+    evaluator = expression_node.construct_evaluator()
+    val = evaluator.evaluate(US_PATIENT_1.dict())
+    assert val.get_verdict() is False
+    assert val.value == []

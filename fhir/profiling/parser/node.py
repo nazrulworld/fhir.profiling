@@ -67,6 +67,7 @@ class ExpressionNode(BaseModel):
             "EqualityExpression",
             "InequalityExpression",
             "IndexerExpression",
+            "MembershipExpression",
         ):
             me = getattr(api, self.node_type + "Evaluator")(
                 self.terminal_node_text[0], expression=self.text

@@ -320,17 +320,56 @@ class InequalityExpressionEvaluator(LogicalOperator):
 class MembershipExpressionEvaluator(LogicalOperator):
     """ """
 
-    __operators__ = (
-        "in",
-        "contains",
-    )
+    __operators__ = {"in": "in_", "contains": "contains"}
     __antlr4_node_type__ = "MembershipExpression"
+
+    def in_(self, left_evaluation: Evaluation, right_evaluation: Evaluation):
+        """6.4.2. in (membership)
+        If the left operand is a collection with a single item, this operator returns true if the item
+        is in the right operand using equality semantics. If the left-hand side of the operator is empty,
+        the result is empty, if the right-hand side is empty, the result is false.
+        If the left operand has multiple items, an exception is thrown.
+        The following example returns true if 'Joe' is in the list
+        of given names for the Patient:
+        'Joe' in Patient.name.given
+        """
+        value_left, value_right = left_evaluation.value, right_evaluation.value
+        if len(value_left) == 0:
+            return Evaluation([])
+        if len(value_right) == 0:
+            return LogicalOperator.return_false()
+        if len(value_left) > 1:
+            raise ValueError
+        return Evaluation(simplify(value_left) in value_right)
+
+    def contains(self, left_evaluation: Evaluation, right_evaluation: Evaluation):
+        """6.4.3. contains (containership)
+        If the right operand is a collection with a single item, this operator returns true
+        if the item is in the left operand using equality semantics. If the right-hand side
+        of the operator is empty, the result is empty, if the left-hand side is empty,
+        the result is false. This is the converse operation of in.
+
+        The following example returns true if the list of given names for
+        the Patient has 'Joe' in it:
+        Patient.name.given contains 'Joe'
+        """
+        value_left, value_right = left_evaluation.value, right_evaluation.value
+        if len(value_right) == 0:
+            return Evaluation([])
+        if len(value_left) == 0:
+            return LogicalOperator.return_false()
+        if len(value_right) > 1:
+            raise ValueError
+        return Evaluation(simplify(value_right) in value_left)
 
 
 class TypeExpressionEvaluator:
     """6.3. Types"""
 
-    def is_(self):
+    __operators__ = {"is": "is_", "as": "as_"}
+    __antlr4_node_type__ = "TypeExpression"
+
+    def is_(self, left_evaluation: Evaluation, right_evaluation: Evaluation):
         """6.3.1. is type specifier
         If the left operand is a collection with a single item and the second operand is a type identifier, this operator returns true if the type of the left operand is the type specified in the second operand, or a subclass thereof. If the input value is not of the type, this operator returns false. If the identifier cannot be resolved to a valid type identifier, the evaluator will throw an error. If the input collections contains more than one item, the evaluator will throw an error. In all other cases this operator returns the empty collection.
 
@@ -339,8 +378,9 @@ class TypeExpressionEvaluator:
         Patient.contained.all($this is Patient implies age > 10)
         :return:
         """
+        raise NotImplementedError
 
-    def as_(self):
+    def as_(self, left_evaluation: Evaluation, right_evaluation: Evaluation):
         """6.3.3. as type specifier
         If the left operand is a collection with a single item and the second operand is an identifier, this operator returns the value of the left operand if it is of the type specified in the second operand, or a subclass thereof. If the identifier cannot be resolved to a valid type identifier, the evaluator will throw an error. If there is more than one item in the input collection, the evaluator will throw an error. Otherwise, this operator returns the empty collection.
 
@@ -349,6 +389,7 @@ class TypeExpressionEvaluator:
         Observation.component.where(value as Quantity > 30 'mg')
         :return:
         """
+        raise NotImplementedError
 
 
 class ImpliesExpressionEvaluator:
@@ -361,9 +402,17 @@ class ImpliesExpressionEvaluator:
 
     Patient.name.given.exists() implies Patient.name.family.exists()
     CareTeam.onBehalfOf.exists() implies (CareTeam.member.resolve() is Practitioner)
-    StructrureDefinition.contextInvariant.exists() implies StructureDefinition.type = 'Extension'
+    StructureDefinition.contextInvariant.exists() implies StructureDefinition.type = 'Extension'
     Note that implies may use short-circuit evaluation in the case that the first operand evaluates to false.
     """
+
+    __operators__ = {
+        "implies": "implies",
+    }
+    __antlr4_node_type__ = "TypeExpression"
+
+    def implies(self, left_evaluation: Evaluation, right_evaluation: Evaluation):
+        raise NotImplementedError
 
 
 __all__ = [

@@ -217,6 +217,21 @@ class FunctionInvocationEvaluator(EvaluatorBase):
     def is_(self):
         """ """
 
+    def contains(self, left_evaluation: Evaluation, right_evaluation: Evaluation):
+        """Returns true when the given substring is a substring of the input string.
+        If substring is the empty string (''), the result is true.
+        If the input collection is empty, the result is empty.
+        If the input collection contains multiple items, the evaluation of the expression
+        will end and signal an error to the calling environment.
+
+        'abc'.contains('b') // true
+        'abc'.contains('bc') // true
+        'abc'.contains('d') // false
+        Note: The .contains() function described here is a string function that looks
+        for a substring in a string. This is different than the contains operator,
+        which is a list operator that looks for an element in a list.
+        """
+
 
 class MemberInvocationEvaluator(EvaluatorBase):
     __antlr4_node_type__ = "MemberInvocation"
